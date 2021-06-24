@@ -1,5 +1,5 @@
-function [fragility,wiring_cost_mean,wiring_cost_std,P_mean,S_mean,S_std,W_fracs,hubs] = calc_fragility_version3(W,fiberdist,thrs,nfracs,nhubs,nruns,thrs_hub)
-% calc_fragility_version3.m
+function [fragility,wiring_cost_mean,wiring_cost_std,P_mean,S_mean,S_std,W_fracs,hubs] = calc_fragility_version4(W,fiberdist,thrs,nfracs,nhubs,nruns,thrs_hub,extend_sim_length)
+% calc_fragility_version4.m
 %
 % Calculating the probability of each hub to remain a hub after
 % randomizing only a fraction of the edges.
@@ -19,6 +19,8 @@ function [fragility,wiring_cost_mean,wiring_cost_std,P_mean,S_mean,S_std,W_fracs
 %          nruns          : number of rewiring iterations [float]
 %          thrs_hub       : threshold for the probability of hub to remain a hub to
 %                           compute the fragility  [float]
+%          extend_sim_length     : how many times simulation length is repeated [integer]
+%                               
 %
 % Outputs: fragility      : fragility of a hub [1 x nhubs]
 %          wiring_cost_mean   : mean of weight times distance [N x N x nfracs]
@@ -38,6 +40,9 @@ function [fragility,wiring_cost_mean,wiring_cost_std,P_mean,S_mean,S_std,W_fracs
 N = size(W, 2);             % number of nodes
 
 % suggested default values
+if nargin < 8
+    extend_sim_length = 1;
+end
 if nargin < 7
     thrs_hub = 0.8;
 end
@@ -64,12 +69,18 @@ hubs = I(1:nhubs);
 
 fracs = linspace(0, 1, nfracs);
 
-wiring_cost_mean = zeros(N,N,nfracs);
-wiring_cost_std = zeros(N,N,nfracs);
-S_mean = zeros(N,nfracs);
-S_std = zeros(N,nfracs);
-hubs_again = zeros(nhubs,nfracs,nruns);
-W_fracs = zeros(N,N,nfracs); 
+if extend_sim_length>1
+    nfracs_extend = nfracs*extend_sim_length-1;
+else
+    nfracs_extend = nfracs;
+end
+
+wiring_cost_mean = zeros(N,N,nfracs_extend);
+wiring_cost_std = zeros(N,N,nfracs_extend);
+S_mean = zeros(N,nfracs_extend);
+S_std = zeros(N,nfracs_extend);
+hubs_again = zeros(nhubs,nfracs_extend,nruns);
+W_fracs = zeros(N,N,nfracs_extend); 
 
 for frac_ind=1:nfracs
     wiring_cost_temp = zeros(N,N,nruns);
@@ -109,6 +120,48 @@ for frac_ind=1:nfracs
     S_std(:,frac_ind) = std(nodes_strength_temp,0,2);
 end
 
+if extend_sim_length > 1
+    [~,W_100,~] = geombinsurr_partial(W,fiberdist,1,100,'equalwidth'); 
+    
+    for frac_ind=2:nfracs
+        wiring_cost_temp = zeros(N,N,nruns);
+        nodes_strength_temp = zeros(N,nruns);
+
+        for run_ind=1:nruns
+            % randomize network
+            [~,Gs,~] = geombinsurr_partial(W_100,fiberdist,fracs(frac_ind),100,'equalwidth'); 
+
+            % save randomized network for the last run
+            if run_ind==nruns
+                W_fracs(:,:,nfracs+frac_ind-1)= Gs;
+            end
+
+            % wiring cost
+            wiring_cost_temp(:,:,run_ind) = Gs.*fiberdist;
+
+            % threshold randomized network
+            Gs_t = threshold_proportional(Gs,thrs);
+
+            % calculate node strengths
+            nodes_strength_temp(:,run_ind) = sum(Gs_t,2);
+
+            % check whether original hubs are still hubs
+            S = sum(Gs_t, 2);  
+            [~,I] = sort(S,'descend');
+            haux = I(1:nhubs);
+            hubs_again(:,nfracs+frac_ind-1,run_ind) = ismember(hubs,haux);      
+        end
+
+        % calculate mean and std of wiring cost
+        wiring_cost_mean(:,:,nfracs+frac_ind-1) = mean(wiring_cost_temp,3);
+        wiring_cost_std(:,:,nfracs+frac_ind-1) = std(wiring_cost_temp,0,3);
+
+        % calculate mean and std of node strengths
+        S_mean(:,nfracs+frac_ind-1) = mean(nodes_strength_temp,2);
+        S_std(:,nfracs+frac_ind-1) = std(nodes_strength_temp,0,2);
+    end
+end
+
 % calculate mean and std probability that hubs remain as hubs
 P_mean = mean(hubs_again,3);
 % P_std = std(hubs_again,0,3);
@@ -129,7 +182,11 @@ resilience = ones(1,length(hubs));
 for jj=1:nhubs
     xres = find(P_mean(jj,:)<thrs_hub);
     if (isempty(xres)==0)
-        resilience(jj) = fracs(min(xres));
+        if min(xres)>nfracs
+            resilience(jj) = 1;
+        else
+            resilience(jj) = fracs(min(xres));
+        end
     end
 end
 

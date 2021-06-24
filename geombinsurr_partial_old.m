@@ -1,5 +1,5 @@
-function [Wwp,Wsp,Wssp]=geombinsurr_partial(W,D,frac,nbins,bintype)
-% [Wwp,Wsp,Wssp]=geombinsurr_partial(W,D,frac,nbins,[bintype])
+function [Wwp,Wsp,Wssp]=geombinsurr_partial_old(W,D,frac,nbins,bintype)
+% [Wwp,Wsp,Wssp]=geombinsurr_partial_old(W,D,frac,nbins,[bintype])
 %
 % Surrogate random graphs that approximately preserve the relationship
 % between weight and distance by first binning the edges by distance and
