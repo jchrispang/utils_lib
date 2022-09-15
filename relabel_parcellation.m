@@ -1,10 +1,11 @@
-function parc_relabel = relabel_parcellation(parc, start_val)
+function parc_relabel = relabel_parcellation(parc, start_val, parcels)
 % relabel_parcellation.m
 %
 % Relabel parcellation file to have consecutive values
 %
 % Inputs: parc         : volume (3d array) or surface (1d array) of parcellation
-%         start_val    : starting value of the relabled parcellation (integer)
+%         start_val    : starting value of the relabeled parcellation (integer)
+%         parcels      : original parcel labels [vector]
 %
 % Output: parc_relabel : relabelled parcellation
 %
@@ -12,11 +13,13 @@ function parc_relabel = relabel_parcellation(parc, start_val)
 
 %%
 
+if nargin<3
+    parcels = unique(parc(parc>0));
+end
 if nargin<2
     start_val = 1;
 end
 
-parcels = unique(parc(parc>0));
 num_parcels = length(parcels);
 
 parc_relabel = zeros(size(parc));
