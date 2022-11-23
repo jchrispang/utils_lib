@@ -3,11 +3,11 @@ function data_normalized = calc_normalize_timeseries(data)
 %
 % Normalize timeseries with respect to mean and std
 %
-% Input: data         : fMRI data [TxN]
-%                       T = length of time
-%                       N = number of points
+% Input: data             : fMRI data [TxN]
+%                           T = length of time
+%                           N = number of points
 %
-% Output: data_normalized
+% Output: data_normalized : normalized fMRI data [TxN]
 %
 % Original: James Pang, Monash University, 2021
 
