@@ -1,8 +1,7 @@
 function [fig, varargout] = draw_surface_parcellation_dull(surface_to_plot, parc, hemisphere, medial_wall, with_medial, cmap)
 % draw_surface_parcellation_dull.m
 %
-% Draw data on surface using blue-white-red colormap for
-% negative-zero-positive values with dull plot lighting
+% Draw parcellated data on surface using a defined colormap with dull plot lighting
 %
 % Inputs: surface_to_plot : surface structure with fields
 %                           vertices - vertex locations [Vx3], V = number of vertices
