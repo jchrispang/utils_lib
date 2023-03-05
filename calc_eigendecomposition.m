@@ -16,8 +16,26 @@ function coeffs = calc_eigendecomposition(data, eigenvectors, method)
 
 %%
 
+warning('off')
+
 [M,P] = size(data);
-[~,N] = size(eigenvectors);
+[~,Norig] = size(eigenvectors);
+coeffs = zeros(Norig,P);
+
+[~,eigenvectors_unique_ind,~] = unique(eigenvectors', 'stable', 'row');
+eigenvectors_unique_ind = eigenvectors_unique_ind';
+eigenvectors_nonzero_ind = find(~all(eigenvectors==0,1));
+eigenvectors_keep_ind = sort(intersect(eigenvectors_unique_ind, eigenvectors_nonzero_ind));
+
+N = length(eigenvectors_keep_ind);
+eigenvectors = eigenvectors(:,eigenvectors_keep_ind);
+
+
+% eigenvectors_nonzeros = ~all(eigenvectors==0,1);
+% N = sum(eigenvectors_nonzeros);
+% 
+% coeffs = zeros(Norig,P);
+% eigenvectors = eigenvectors(:,eigenvectors_nonzeros);
 
 if nargin<3
     method = 'matrix';
@@ -25,19 +43,22 @@ end
 
 switch method
     case 'matrix'
-        coeffs = (eigenvectors.'*eigenvectors)\(eigenvectors.'*data);
+        coeffs_temp = (eigenvectors.'*eigenvectors)\(eigenvectors.'*data);
     case 'matrix_separate'
-        coeffs = zeros(N,P);
+        coeffs_temp = zeros(N,P);
         
         for p = 1:P
-            coeffs(:,p) = (eigenvectors.'*eigenvectors)\(eigenvectors.'*data(:,p));
+            coeffs_temp(:,p) = (eigenvectors.'*eigenvectors)\(eigenvectors.'*data(:,p));
         end
     case 'regression'
-        coeffs = zeros(N,P);
+        coeffs_temp = zeros(N,P);
         
         for p = 1:P
-            coeffs(:,p) = regress(data(:,p), eigenvectors);
+            coeffs_temp(:,p) = regress(data(:,p), eigenvectors);
         end
 end
-    
+   
+% coeffs(eigenvectors_nonzeros,:) = coeffs_temp;
+coeffs(eigenvectors_keep_ind,:) = coeffs_temp;
+
 end
